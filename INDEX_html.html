@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Найди врача! — Медицинское приключение</title>
+<style>
+  :root {
+    --game-bg: #eaf6fb;
+    --game-bg-2: #ffffff;
+    --game-card: #ffffff;
+    --game-primary: #0077b6;
+    --game-accent: #48cae4;
+    --game-accent-2: #90e0ef;
+    --game-text: #023e8a;
+    --game-text-soft: #0096c7;
+    --game-success: #2a9d8f;
+    --game-error: #e63946;
+    --game-muted: #b8d4e3;
+    --game-shadow: 0 8px 24px rgba(2, 62, 138, 0.12);
+    --game-radius: 18px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Comic Sans MS', 'Trebuchet MS', sans-serif;
+    background: var(--game-bg);
+    background-image:
+      radial-gradient(circle at 10% 20%, rgba(72, 202, 228, 0.15) 0%, transparent 30%),
+      radial-gradient(circle at 90% 80%, rgba(0, 119, 182, 0.1) 0%, transparent 30%),
+      repeating-linear-gradient(45deg, rgba(255,255,255,0.3) 0px, rgba(255,255,255,0.3) 2px, transparent 2px, transparent 20px);
+    min-height: 100vh;
+    color: var(--game-text);
+    overflow-x: hidden;
+    padding: 10px;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(circle, var(--game-accent) 2px, transparent 3px);
+    background-size: 80px 80px;
+    opacity: 0.08;
+    z-index: 0;
+  }
+
+  .game-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  .screen {
+    display: none;
+    animation: fadeIn 0.5s ease;
+  }
+  .screen.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .start-screen {
+    text-align: center;
+    padding: 30px 20px;
+    background: var(--game-card);
+    border-radius: var(--game-radius);
+    box-shadow: var(--game-shadow);
+    border: 3px solid var(--game-accent);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .start-screen::before {
+    content: "✚";
+    position: absolute;
+    top: 10px; left: 15px;
+    font-size: 40px;
+    color: var(--game-error);
+    opacity: 0.3;
+  }
+  .start-screen::after {
+    content: "✚";
+    position: absolute;
+    bottom: 10px; right: 15px;
+    font-size: 40px;
+    color: var(--game-primary);
+    opacity: 0.3;
+  }
+
+  .logo-img {
+    width: 180px;
+    max-width: 40%;
+    border-radius: 20px;
+    border: 4px solid var(--game-accent);
+    margin-bottom: 20px;
+    box-shadow: var(--game-shadow);
+  }
+
+  h1.game-title {
+    font-size: clamp(28px, 5vw, 48px);
+    color: var(--game-primary);
+    margin-bottom: 15px;
+    text-shadow: 2px 2px 0 var(--game-accent-2);
+  }
+
+  .game-subtitle {
+    font-size: clamp(16px, 2.5vw, 22px);
+    color: var(--game-text-soft);
+    margin-bottom: 25px;
+    padding: 0 15px;
+  }
+
+  .legend-box {
+    background: linear-gradient(135deg, var(--game-accent-2), #caf0f8);
+    border: 2px dashed var(--game-primary);
+    border-radius: 15px;
+    padding: 18px;
+    margin: 20px auto;
+    max-width: 600px;
+    font-size: clamp(14px, 2vw, 18px);
+    color: var(--game-text);
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 14px 32px;
+    font-size: clamp(16px, 2.5vw, 22px);
+    font-weight: bold;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    box-shadow: 0 5px 0 rgba(0,0,0,0.15);
+    color: white;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--game-primary), var(--game-accent));
+  }
+  .btn-success {
+    background: linear-gradient(135deg, var(--game-success), #52b788);
+  }
+  .btn-muted {
+    background: var(--game-muted);
+    color: var(--game-text);
+    cursor: not-allowed;
+  }
+  .btn:hover:not(.btn-muted) {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 0 rgba(0,0,0,0.15);
+  }
+  .btn:active:not(.btn-muted) {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 rgba(0,0,0,0.15);
+  }
+
+  .top-bar {
+    background: var(--game-card);
+    border-radius: var(--game-radius);
+    padding: 12px 18px;
+    margin-bottom: 15px;
+    box-shadow: var(--game-shadow);
+    border: 2px solid var(--game-accent-2);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .score-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #ffd166, #ffb703);
+    padding: 8px 14px;
+    border-radius: 30px;
+    color: #5a3e00;
+    font-weight: bold;
+    font-size: clamp(14px, 2vw, 18px);
+  }
+
+  .progress-info {
+    flex: 1;
+    min-width: 200px;
+  }
+  .progress-text {
+    font-size: clamp(12px, 1.8vw, 15px);
+    color: var(--game-text-soft);
+    margin-bottom: 5px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .progress-bar {
+    height: 14px;
+    background: var(--game-accent-2);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid var(--game-primary);
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--game-primary), var(--game-accent));
+    width: 0%;
+    transition: width 0.6s ease;
+    border-radius: 10px;
+  }
+
+  .lives-box {
+    display: flex;
+    gap: 4px;
+    font-size: 22px;
+  }
+  .life { transition: all 0.4s; }
+  .life.lost { opacity: 0.2; transform: scale(0.7); }
+
+  .game-area {
+    background: var(--game-card);
+    border-radius: var(--game-radius);
+    padding: 20px;
+    box-shadow: var(--game-shadow);
+    border: 2px solid var(--game-accent-2);
+    position: relative;
+  }
+
+  .task-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 2px dashed var(--game-accent-2);
+  }
+
+  .helper-img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid var(--game-primary);
+    object-fit: cover;
+    background: var(--game-accent-2);
+    flex-shrink: 0;
+  }
+
+  .helper-speech {
+    background: linear-gradient(135deg, var(--game-accent-2), #caf0f8);
+    padding: 12px 16px;
+    border-radius: 15px;
+    position: relative;
+    flex: 1;
+    font-size: clamp(14px, 2vw, 17px);
+    color: var(--game-text);
+  }
+  .helper-speech::before {
+    content: "";
+    position: absolute;
+    left: -10px;
+    top: 20px;
+    border: 10px solid transparent;
+    border-right-color: var(--game-accent-2);
+  }
+
+  .task-title {
+    font-size: clamp(18px, 2.8vw, 24px);
+    color: var(--game-primary);
+    margin-bottom: 15px;
+    text-align: center;
+    padding: 10px;
+    background: linear-gradient(90deg, transparent, var(--game-accent-2), transparent);
+    border-radius: 10px;
+  }
+
+  .options-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .option-card {
+    background: var(--game-card);
+    border: 3px solid var(--game-accent-2);
+    border-radius: 15px;
+    padding: 15px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: clamp(14px, 2vw, 18px);
+    color: var(--game-text);
+    font-weight: 600;
+    min-height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    position: relative;
+  }
+  .option-card:hover {
+    border-color: var(--game-primary);
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,119,182,0.2);
+  }
+  .option-card.selected {
+    border-color: var(--game-primary);
+    background: linear-gradient(135deg, #caf0f8, #ade8f4);
+    transform: scale(1.03);
+  }
+  .option-card.correct {
+    border-color: var(--game-success);
+    background: #d8f3dc;
+    animation: popCorrect 0.5s;
+  }
+  .option-card.correct::after {
+    content: "✓";
+    position: absolute;
+    top: -10px; right: -10px;
+    background: var(--game-success);
+    color: white;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: bold;
+  }
+  .option-card.wrong {
+    border-color: var(--game-error);
+    background: #fde4e4;
+    animation: shake 0.4s;
+  }
+  .option-card.wrong::after {
+    content: "✗";
+    position: absolute;
+    top: -10px; right: -10px;
+    background: var(--game-error);
+    color: white;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: bold;
+  }
+  .option-card.missed {
+    border-color: var(--game-success);
+    background: #d8f3dc;
+    opacity: 0.8;
+  }
+  .option-card.missed::after {
+    content: "!";
+    position: absolute;
+    top: -10px; right: -10px;
+    background: var(--game-success);
+    color: white;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: bold;
+  }
+  .option-card.dimmed {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  @keyframes popCorrect {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+
+  .feedback-area {
+    text-align: center;
+    padding: 15px;
+    border-radius: 15px;
+    margin: 15px 0;
+    display: none;
+  }
+  .feedback-area.show { display: block; animation: fadeIn 0.4s; }
+  .feedback-area.success {
+    background: linear-gradient(135deg, #d8f3dc, #b7e4c7);
+    border: 2px solid var(--game-success);
+  }
+  .feedback-area.error {
+    background: linear-gradient(135deg, #fde4e4, #f8c4c4);
+    border: 2px solid var(--game-error);
+  }
+  .feedback-title {
+    font-size: clamp(18px, 2.8vw, 24px);
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+  .feedback-text {
+    font-size: clamp(14px, 2vw, 17px);
+  }
+
+  .feedback-img {
+    width: 120px;
+    height: 120px;
+    border-radius: 15px;
+    margin: 10px auto;
+    display: block;
+    border: 3px solid white;
+    box-shadow: var(--game-shadow);
+  }
+
+  .controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+  }
+
+  .maze-container {
+    position: relative;
+    padding: 20px 10px;
+  }
+  .maze-path {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+  }
+  .maze-node {
+    background: linear-gradient(135deg, var(--game-accent-2), #caf0f8);
+    border: 3px solid var(--game-primary);
+    border-radius: 20px;
+    padding: 15px;
+    width: 100%;
+    max-width: 500px;
+    text-align: center;
+    position: relative;
+  }
+  .maze-node.completed {
+    background: linear-gradient(135deg, #d8f3dc, #b7e4c7);
+    border-color: var(--game-success);
+  }
+  .maze-node.failed {
+    background: linear-gradient(135deg, #fde4e4, #f8c4c4);
+    border-color: var(--game-error);
+  }
+  .maze-mouse {
+    font-size: 40px;
+    animation: bounce 1s infinite;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  .maze-question {
+    font-size: clamp(15px, 2.2vw, 19px);
+    color: var(--game-text);
+    margin: 10px 0;
+    font-weight: 600;
+  }
+  .maze-choices {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .maze-choice {
+    flex: 1;
+    min-width: 120px;
+    padding: 12px;
+    background: var(--game-card);
+    border: 3px solid var(--game-accent);
+    border-radius: 15px;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--game-text);
+    transition: all 0.2s;
+    font-size: clamp(13px, 1.9vw, 16px);
+  }
+  .maze-choice:hover {
+    background: var(--game-accent-2);
+    transform: translateY(-2px);
+  }
+  .maze-choice.correct {
+    background: #d8f3dc;
+    border-color: var(--game-success);
+  }
+  .maze-choice.wrong {
+    background: #fde4e4;
+    border-color: var(--game-error);
+  }
+  .maze-connector {
+    width: 4px;
+    height: 25px;
+    background: var(--game-primary);
+    border-radius: 2px;
+  }
+
+  .scene-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/10;
+    max-height: 500px;
+    background: linear-gradient(180deg, #caf0f8 0%, #eaf6fb 60%, #b8d4e3 100%);
+    border-radius: 20px;
+    border: 4px solid var(--game-primary);
+    overflow: hidden;
+    margin-bottom: 15px;
+  }
+  .scene-svg {
+    width: 100%;
+    height: 100%;
+  }
+  .hotspot {
+    cursor: pointer;
+    transition: transform 0.3s;
+  }
+  .hotspot:hover { transform: scale(1.1); }
+  .pulse-dot {
+    fill: var(--game-error);
+    animation: pulse 1.5s infinite;
+    transform-origin: center;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.4); }
+  }
+  .found-dot {
+    fill: var(--game-success);
+    animation: none;
+  }
+
+  .scene-counter {
+    text-align: center;
+    font-size: clamp(16px, 2.2vw, 20px);
+    color: var(--game-primary);
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+
+  .modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 62, 138, 0.6);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+  }
+  .modal.show { display: flex; animation: fadeIn 0.3s; }
+  .modal-content {
+    background: var(--game-card);
+    border-radius: var(--game-radius);
+    padding: 25px;
+    max-width: 500px;
+    width: 100%;
+    border: 3px solid var(--game-primary);
+    box-shadow: var(--game-shadow);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-title {
+    color: var(--game-primary);
+    font-size: clamp(18px, 2.8vw, 24px);
+    margin-bottom: 15px;
+    text-align: center;
+  }
+
+  .final-screen {
+    text-align: center;
+    padding: 30px 20px;
+    background: var(--game-card);
+    border-radius: var(--game-radius);
+    box-shadow: var(--game-shadow);
+    border: 3px solid var(--game-primary);
+  }
+  .stars {
+    font-size: 50px;
+    margin: 15px 0;
+    letter-spacing: 10px;
+  }
+  .star { opacity: 0.3; transition: all 0.5s; }
+  .star.earned { opacity: 1; animation: starPop 0.6s; }
+  @keyframes starPop {
+    0% { transform: scale(0) rotate(-180deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  .final-stats {
+    background: linear-gradient(135deg, var(--game-accent-2), #caf0f8);
+    padding: 20px;
+    border-radius: 15px;
+    margin: 20px auto;
+    max-width: 400px;
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    font-size: clamp(14px, 2vw, 18px);
+    border-bottom: 1px dashed var(--game-primary);
+  }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-value { font-weight: bold; color: var(--game-primary); }
+
+  .stage-complete {
+    text-align: center;
+    padding: 30px 20px;
+    background: var(--game-card);
+    border-radius: var(--game-radius);
+    box-shadow: var(--game-shadow);
+    border: 3px solid var(--game-success);
+  }
+  .stage-title {
+    color: var(--game-primary);
+    font-size: clamp(22px, 3.5vw, 32px);
+    margin-bottom: 15px;
+  }
+
+  .errors-list {
+    display: none;
+    background: var(--game-card);
+    border-radius: var(--game-radius);
+    padding: 20px;
+    margin-top: 15px;
+    box-shadow: var(--game-shadow);
+    border: 2px solid var(--game-accent);
+  }
+  .errors-list.show { display: block; }
+  .error-item {
+    padding: 10px;
+    margin: 8px 0;
+    background: #fde4e4;
+    border-left: 4px solid var(--game-error);
+    border-radius: 8px;
+    font-size: clamp(13px, 1.8vw, 15px);
+  }
+
+  .sound-toggle {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: var(--game-primary);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 24px;
+    cursor: pointer;
+    z-index: 1000;
+    box-shadow: var(--game-shadow);
+  }
+
+  @media (max-width: 600px) {
+    .helper-img { width: 60px; height: 60px; }
+    .options-grid { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
+    .feedback-img { width: 90px; height: 90px; }
+  }
+</style>
+</head>
+<body>
+
+<button class="sound-toggle" id="sound-toggle" onclick="toggleSound()">🔊</button>
+
+<div class="game-container">
+
+  <div id="start-screen" class="screen active">
+    <div class="start-screen">
+      <img src="https://sun9-26.userapi.com/s/v1/ig2/5QUZ44dhb7acAtWZME_QYuzUMtAjAEIptJ2NGrhS8bFe2dVt5z0e6lTQb5Mbptx4e9NlZhoPOOpwcAbvgdt940Z0.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1080x1080,1280x1280,1440x1440,2048x2048&from=bu&u=hN3EIo5xN98s-m4GIzFfHIUoFcjFBMcauolMaoJY4K0&cs=1280x0" alt="Медицина" class="logo-img">
+      <h1 class="game-title">✚ Найди врача! ✚</h1>
+      <p class="game-subtitle">Медицинское приключение для маленьких помощников</p>
+      <div class="legend-box">
+        🩺 В городе заболал любимый плюшевый мишка! Ему срочно нужен врач. Пройди 4 этапа, помоги мышонку Пику найти настоящего доктора и узнать всё о важной профессии врача!
+      </div>
+      <button class="btn btn-primary" onclick="startGame()">🚀 Начать приключение</button>
+    </div>
+  </div>
+
+  <div id="top-bar" class="top-bar" style="display:none;">
+    <div class="score-box">⭐ <span id="total-score">0</span></div>
+    <div class="progress-info">
+      <div class="progress-text">
+        <span id="progress-label">Этап 1 из 4</span>
+        <span id="tasks-counter">Выполнено: 0 | Осталось: 4</span>
+      </div>
+      <div class="progress-bar">
+        <div id="progress-fill" class="progress-fill"></div>
+      </div>
+    </div>
+    <div id="lives-box" class="lives-box" style="display:none;">
+      <span class="life">❤️</span>
+      <span class="life">❤️</span>
+      <span class="life">❤️</span>
+    </div>
+  </div>
+
+  <div id="stage1-screen" class="screen">
+    <div class="game-area">
+      <div class="task-header">
+        <img src="https://sun9-68.userapi.com/s/v1/ig2/HNkUjGS-0LG69XvLDEAuZVzDF1Ms3a1fYvgnRutr19ZaZh1BZ9LvP4tr8bx112LKG-TU-FR3tdCgwJ8xE4BNMHmP.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1080x1080,1280x1280,1440x1440,2048x2048&from=bu&u=heSNeiIHfe5xeDeP1Oh-4ZN4jfj8ScwAp_Hwo9NUP68&cs=1280x0" alt="Помощник" class="helper-img">
+        <div class="helper-speech" id="helper-speech-1">Привет! Я мышонок Пик. Давай вместе найдём, кто помогает людям быть здоровыми!</div>
+      </div>
+      <div class="task-title" id="task1-title"></div>
+      <div class="options-grid" id="task1-options"></div>
+      <div class="controls">
+        <button class="btn btn-primary" id="check-btn-1" onclick="checkStage1()">Проверить</button>
+      </div>
+      <div class="feedback-area" id="feedback-1">
+        <img id="feedback-img-1" class="feedback-img" src="" alt="">
+        <div class="feedback-title" id="feedback-title-1"></div>
+        <div class="feedback-text" id="feedback-text-1"></div>
+      </div>
+      <div class="controls">
+        <button class="btn btn-primary" id="next-btn-1" onclick="nextStage1()">Дальше ➡️</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="stage-complete-screen" class="screen">
+    <div class="stage-complete">
+      <div style="font-size: 60px;">🎉</div>
+      <h2 class="stage-title" id="stage-complete-title">Этап пройден!</h2>
+      <p id="stage-complete-text" style="font-size: 18px; margin: 15px 0; color: var(--game-text-soft);"></p>
+      <button class="btn btn-success" id="next-stage-btn" onclick="goNextStage()">Следующий этап ➡️</button>
+    </div>
+  </div>
+
+  <div id="stage2-screen" class="screen">
+    <div class="game-area">
+      <div class="task-header">
+        <img src="https://sun9-68.userapi.com/s/v1/ig2/HNkUjGS-0LG69XvLDEAuZVzDF1Ms3a1fYvgnRutr19ZaZh1BZ9LvP4tr8bx112LKG-TU-FR3tdCgwJ8xE4BNMHmP.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1080x1080,1280x1280,1440x1440,2048x2048&from=bu&u=heSNeiIHfe5xeDeP1Oh-4ZN4jfj8ScwAp_Hwo9NUP68&cs=1280x0" alt="Помощник" class="helper-img">
+        <div class="helper-speech" id="helper-speech-2">Найди лишнее! Один предмет здесь не из мира медицины.</div>
+      </div>
+      <div class="task-title" id="task2-title"></div>
+      <div class="options-grid" id="task2-options"></div>
+      <div class="feedback-area" id="feedback-2">
+        <img id="feedback-img-2" class="feedback-img" src="" alt="">
+        <div class="feedback-title" id="feedback-title-2"></div>
+        <div class="feedback-text" id="feedback-text-2"></div>
+      </div>
+      <div class="controls">
+        <button class="btn btn-primary" id="next-btn-2" onclick="nextStage2()">Дальше ➡️</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="stage3-screen" class="screen">
+    <div class="game-area">
+      <div class="task-header">
+        <img src="https://sun9-68.userapi.com/s/v1/ig2/HNkUjGS-0LG69XvLDEAuZVzDF1Ms3a1fYvgnRutr19ZaZh1BZ9LvP4tr8bx112LKG-TU-FR3tdCgwJ8xE4BNMHmP.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1080x1080,1280x1280,1440x1440,2048x2048&from=bu&u=heSNeiIHfe5xeDeP1Oh-4ZN4jfj8ScwAp_Hwo9NUP68&cs=1280x0" alt="Помощник" class="helper-img">
+        <div class="helper-speech" id="helper-speech-3">Помоги мышонку пройти через больничный лабиринт! Выбирай правильный путь.</div>
+      </div>
+      <div class="maze-container" id="maze-container"></div>
+      <div class="feedback-area" id="feedback-3">
+        <img id="feedback-img-3" class="feedback-img" src="" alt="">
+        <div class="feedback-title" id="feedback-title-3"></div>
+        <div class="feedback-text" id="feedback-text-3"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="stage4-screen" class="screen">
+    <div class="game-area">
+      <div class="task-header">
+        <img src="https://sun9-68.userapi.com/s/v1/ig2/HNkUjGS-0LG69XvLDEAuZVzDF1Ms3a1fYvgnRutr19ZaZh1BZ9LvP4tr8bx112LKG-TU-FR3tdCgwJ8xE4BNMHmP.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1080x1080,1280x1280,1440x1440,2048x2048&from=bu&u=heSNeiIHfe5xeDeP1Oh-4ZN4jfj8ScwAp_Hwo9NUP68&cs=1280x0" alt="Помощник" class="helper-img">
+        <div class="helper-speech" id="helper-speech-4">Мы в больнице! Найди все 7 секретных предметов и ответь на вопросы о них.</div>
+      </div>
+      <div class="scene-counter" id="scene-counter">Найдено: 0 из 7 🔍</div>
+      <div class="scene-container" id="scene-container"></div>
+      <div class="controls">
+        <button class="btn btn-success" id="finish-stage4-btn" onclick="finishStage4()">Завершить этап</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="final-screen" class="screen">
+    <div class="final-screen">
+      <div style="font-size: 60px;">🏆</div>
+      <h1 class="stage-title">Миссия выполнена!</h1>
+      <div class="stars" id="final-stars">
+        <span class="star">⭐</span>
+        <span class="star">⭐</span>
+        <span class="star">⭐</span>
+      </div>
+      <div class="final-stats">
+        <div class="stat-row"><span>Всего баллов:</span><span class="stat-value" id="final-score">0</span></div>
+        <div class="stat-row"><span>Правильных ответов:</span><span class="stat-value" id="final-correct">0</span></div>
+        <div class="stat-row"><span>Ошибок:</span><span class="stat-value" id="final-errors">0</span></div>
+        <div class="stat-row"><span>Этапов пройдено:</span><span class="stat-value">4 из 4</span></div>
+      </div>
+      <p style="font-size: 18px; margin: 15px 0; color: var(--game-text-soft);" id="final-message">Ты настоящий помощник врача!</p>
+      <button class="btn btn-primary" onclick="showErrors()">📋 Посмотреть ошибки</button>
+      <button class="btn btn-success" onclick="restartGame()">🔄 Играть снова</button>
+      <div class="errors-list" id="errors-list"></div>
+    </div>
+  </div>
+
+</div>
+
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <h3 class="modal-title" id="modal-title"></h3>
+    <div id="modal-body"></div>
+    <div class="controls" id="modal-controls"></div>
+  </div>
+</div>
+
+<script>
+const CORRECT_IMG = "https://sun9-19.userapi.com/s/v1/ig2/_k1sz26oCxMKpjwseG3BIvo-aEC4wsa8XwF7nTspIoPPd3yPvm2I3pOq9n0hYCZiCeMZ1t_yKYJsW8I3PwePQPce.jpg?quality=95&as=32x18,48x27,72x40,108x60,160x89,240x134,360x201,480x268,540x301,640x357,720x402,1080x603,1280x714,1376x768&from=bu&cs=1280x0";
+const WRONG_IMG = "https://sun9-27.userapi.com/s/v1/ig2/Gj-Jw7497PSRoY2ARK3-n1YxX0R5nRuEFd5jxt6PO7z0A8kI4jpyn17kYLhygE6zndAaT5SFO1M7LaZrU6PGMPg-.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1024x1024&from=bu&cs=1024x0";
+
+const HELPER_PHRASES = {
+  correct: ["Молодец! Ты настоящий знаток!", "Отлично! Так держать!", "Умничка! Всё верно!", "Браво! Ты справился!"],
+  wrong: ["Почти! Попробуй ещё раз!", "Не расстраивайся, подумай ещё!", "Ой, ошибка. Но ничего, учимся!", "Не совсем, давай ещё разок!"],
+  hint: ["Подсказка: подумай о медицине!", "Вспомни, что есть у врача!", "Ищи то, что связано со здоровьем!"],
+  final: ["Ты настоящий герой!", "Миссия выполнена!", "Ты лучший помощник!"]
+};
+
+const stage1Data = [
+  {
+    title: "Кто помогает людям, когда они болеют?",
+    options: ["Врач", "Повар", "Медсестра", "Водитель", "Терапевт"],
+    correct: [0, 2, 4],
+    explanation: "Врач, медсестра и терапевт — все они работают в медицине и лечат людей."
+  },
+  {
+    title: "Что использует врач в своей работе?",
+    options: ["Удочка", "Стетоскоп", "Молоток", "Градусник", "Шприц"],
+    correct: [1, 3, 4],
+    explanation: "Стетоскоп, градусник и шприц — настоящие помощники врача."
+  },
+  {
+    title: "Где может работать врач?",
+    options: ["Больница", "Зоопарк", "Поликлиника", "Цирк", "Аптека"],
+    correct: [0, 2, 4],
+    explanation: "Врачи работают в больнице, поликлинике и даже в аптеке помогают людям."
+  },
+  {
+    title: "Что делает врач на приёме?",
+    options: ["Готовит обед", "Слушает сердце", "Водит машину", "Выписывает лекарства", "Чинит компьютер"],
+    correct: [1, 3],
+    explanation: "Врач слушает сердце стетоскопом и выписывает нужные лекарства."
+  }
+];
+
+const stage2Data = [
+  {
+    title: "Найди лишнее слово:",
+    options: ["Врач", "Медсестра", "Повар", "Терапевт", "Хирург"],
+    correct: 2,
+    explanation: "Повар готовит еду на кухне, а остальные — медицинские профессии."
+  },
+  {
+    title: "Что здесь лишнее?",
+    options: ["Стетоскоп", "Шприц", "Молоток", "Градусник", "Бинт"],
+    correct: 2,
+    explanation: "Молоток — инструмент строителя, а не врача."
+  },
+  {
+    title: "Что не относится к медицине?",
+    options: ["Больница", "Поликлиника", "Аптека", "Зоопарк", "Роддом"],
+    correct: 3,
+    explanation: "В зоопарке живут животные, а не лечат людей."
+  },
+  {
+    title: "Кто здесь не лечит людей?",
+    options: ["Стоматолог", "Учитель", "Педиатр", "Окулист", "Кардиолог"],
+    correct: 1,
+    explanation: "Учитель учит детей в школе, а остальные — врачи разных специальностей."
+  },
+  {
+    title: "Что не является лекарством?",
+    options: ["Таблетка", "Микстура", "Мазь", "Конфета", "Пластырь"],
+    correct: 3,
+    explanation: "Конфета — это сладость, а не лекарство."
+  },
+  {
+    title: "Что не надевает врач?",
+    options: ["Белый халат", "Маска", "Перчатки", "Каска", "Медицинский колпак"],
+    correct: 3,
+    explanation: "Каску носят строители, а врач носит халат, маску и перчатки."
+  }
+];
+
+const stage3Data = [
+  {
+    question: "Мышонок Пик пришёл в здание. Куда ему зайти?",
+    choices: [
+      { text: "🏥 В больницу", correct: true },
+      { text: "🎪 В цирк", correct: false }
+    ],
+    explanation: "Врач работает в больнице — именно там лечат больных."
+  },
+  {
+    question: "На ресепшене спросили: к кому ты хочешь попасть?",
+    choices: [
+      { text: "👨‍🍳 К повару", correct: false },
+      { text: "👨‍⚕️ К терапевту", correct: true }
+    ],
+    explanation: "Терапевт — это врач, который лечит взрослых и детей."
+  },
+  {
+    question: "Врач хочет послушать сердце. Какой инструмент взять?",
+    choices: [
+      { text: "🔨 Молоток", correct: false },
+      { text: "🩺 Стетоскоп", correct: true }
+    ],
+    explanation: "Стетоскоп помогает врачу слышать, как бьётся сердце."
+  },
+  {
+    question: "У мишки температура. Что сделает врач?",
+    choices: [
+      { text: "🌡️ Измерит градусником", correct: true },
+      { text: "🎈 Надует шарик", correct: false }
+    ],
+    explanation: "Градусник показывает, какая у тебя температура."
+  },
+  {
+    question: "Врач выписал лечение. Куда идти за лекарствами?",
+    choices: [
+      { text: "🏪 В аптеку", correct: true },
+      { text: "🛒 В магазин игрушек", correct: false }
+    ],
+    explanation: "Лекарства продаются только в аптеке."
+  }
+];
+
+const stage4Data = [
+  {
+    id: "door",
+    x: 10, y: 40,
+    question: "Что написано на двери больницы?",
+    options: ["Кафе", "Больница", "Школа", "Магазин"],
+    correct: 1,
+    explanation: "На двери больницы обычно написано 'Больница' или висит красный крест."
+  },
+  {
+    id: "cross",
+    x: 50, y: 15,
+    question: "Какого цвета медицинский крест?",
+    options: ["Зелёный", "Синий", "Красный", "Жёлтый"],
+    correct: 2,
+    explanation: "Медицинский крест — красного цвета, его видно издалека!"
+  },
+  {
+    id: "stethoscope",
+    x: 80, y: 65,
+    question: "Для чего врачу нужен стетоскоп?",
+    options: ["Играть", "Слушать сердце", "Рисовать", "Есть"],
+    correct: 1,
+    explanation: "Стетоскопом врач слушает, как работает сердце и лёгкие."
+  },
+  {
+    id: "ambulance",
+    x: 85, y: 85,
+    question: "Куда едет скорая помощь?",
+    options: ["В парк", "К больному", "В кино", "В школу"],
+    correct: 1,
+    explanation: "Скорая помощь приезжает к тому, кто заболел или попал в беду."
+  },
+  {
+    id: "nurse",
+    x: 25, y: 70,
+    question: "Кто помогает врачу в кабинете?",
+    options: ["Повар", "Медсестра", "Водитель", "Пилот"],
+    correct: 1,
+    explanation: "Медсестра — верная помощница врача, она даёт лекарства и делает уколы."
+  },
+  {
+    id: "pill",
+    x: 60, y: 50,
+    question: "Что помогает выздороветь?",
+    options: ["Мороженое", "Лекарство", "Игрушка", "Торт"],
+    correct: 1,
+    explanation: "Лекарство, которое выписал врач, помогает победить болезнь."
+  },
+  {
+    id: "thermometer",
+    x: 40, y: 85,
+    question: "Чем измеряют температуру?",
+    options: ["Линейкой", "Часами", "Градусником", "Весами"],
+    correct: 2,
+    explanation: "Градусник показывает, есть ли у тебя жар."
+  }
+];
+
+let state = {
+  currentStage: 0,
+  totalScore: 0,
+  totalCorrect: 0,
+  totalErrors: 0,
+  stage1: { current: 0, score: 0, correct: 0, errors: 0, errorsList: [] },
+  stage2: { current: 0, score: 0, correct: 0, errors: 0, errorsList: [] },
+  stage3: { current: 0, score: 0, correct: 0, errors: 0, lives: 3, errorsList: [] },
+  stage4: { found: 0, score: 0, correct: 0, errors: 0, errorsList: [] }
+};
+
+let soundEnabled = true;
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  document.getElementById('sound-toggle').textContent = soundEnabled ? '🔊' : '🔇';
+  if (!soundEnabled) {
+    speechSynthesis.cancel();
+  }
+}
+
+function speak(text) {
+  if (!soundEnabled || !('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'ru-RU';
+  utterance.pitch = 3.0;
+  utterance.rate = 1.0;
+  utterance.volume = 1.0;
+  speechSynthesis.speak(utterance);
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function updateTopBar() {
+  document.getElementById('total-score').textContent = state.totalScore;
+  const stageNames = ["Этап 1: Кто лечит?", "Этап 2: Лишнее", "Этап 3: Лабиринт", "Этап 4: Больница"];
+  document.getElementById('progress-label').textContent = stageNames[state.currentStage - 1] || "Игра";
+
+  let total = 0, done = 0;
+  if (state.currentStage === 1) { total = stage1Data.length; done = state.stage1.current; }
+  else if (state.currentStage === 2) { total = stage2Data.length; done = state.stage2.current; }
+  else if (state.currentStage === 3) { total = stage3Data.length; done = state.stage3.current; }
+  else if (state.currentStage === 4) { total = stage4Data.length; done = state.stage4.found; }
+  document.getElementById('tasks-counter').textContent = `Выполнено: ${done} | Осталось: ${total - done}`;
+  const pct = total > 0 ? (done / total) * 100 : 0;
+  document.getElementById('progress-fill').style.width = pct + "%";
+}
+
+function updateLives() {
+  const lives = document.querySelectorAll('#lives-box .life');
+  lives.forEach((l, i) => {
+    if (i >= state.stage3.lives) l.classList.add('lost');
+    else l.classList.remove('lost');
+  });
+}
+
+function randomPhrase(type) {
+  const arr = HELPER_PHRASES[type];
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function playFeedback(isCorrect) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    if (isCorrect) {
+      osc.frequency.setValueAtTime(600, ctx.currentTime);
+      osc.frequency.setValueAtTime(900, ctx.currentTime + 0.1);
+    } else {
+      osc.frequency.setValueAtTime(300, ctx.currentTime);
+      osc.frequency.setValueAtTime(200, ctx.currentTime + 0.1);
+    }
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    osc.start(); osc.stop(ctx.currentTime + 0.3);
+  } catch(e) {}
+}
+
+function startGame() {
+  state = {
+    currentStage: 1,
+    totalScore: 0, totalCorrect: 0, totalErrors: 0,
+    stage1: { current: 0, score: 0, correct: 0, errors: 0, errorsList: [] },
+    stage2: { current: 0, score: 0, correct: 0, errors: 0, errorsList: [] },
+    stage3: { current: 0, score: 0, correct: 0, errors: 0, lives: 3, errorsList: [] },
+    stage4: { found: 0, score: 0, correct: 0, errors: 0, errorsList: [] }
+  };
+  document.getElementById('top-bar').style.display = 'flex';
+  document.getElementById('lives-box').style.display = 'none';
+  updateTopBar();
+  loadStage1();
+  showScreen('stage1-screen');
+}
+
+let stage1Selections = new Set();
+let stage1Answered = false;
+
+function loadStage1() {
+  stage1Answered = false;
+  stage1Selections.clear();
+  const task = stage1Data[state.stage1.current];
+  document.getElementById('task1-title').textContent = task.title;
+  speak(task.title);
+  const container = document.getElementById('task1-options');
+  container.innerHTML = '';
+  task.options.forEach((opt, i) => {
+    const div = document.createElement('div');
+    div.className = 'option-card';
+    div.textContent = opt;
+    div.onclick = () => toggleStage1(i, div);
+    container.appendChild(div);
+  });
+  document.getElementById('feedback-1').classList.remove('show');
+  document.getElementById('check-btn-1').style.display = 'inline-block';
+  document.getElementById('check-btn-1').className = 'btn btn-primary';
+  document.getElementById('next-btn-1').className = 'btn btn-muted';
+  document.getElementById('helper-speech-1').textContent = "Выбери все правильные варианты и нажми 'Проверить'!";
+  updateTopBar();
+}
+
+function toggleStage1(idx, el) {
+  if (stage1Answered) return;
+  if (stage1Selections.has(idx)) {
+    stage1Selections.delete(idx);
+    el.classList.remove('selected');
+  } else {
+    stage1Selections.add(idx);
+    el.classList.add('selected');
+    speak(el.textContent);
+  }
+}
+
+function checkStage1() {
+  if (stage1Answered) return;
+  if (stage1Selections.size === 0) {
+    showModal("Выбери варианты", "Сначала выбери все правильные варианты!", false);
+    return;
+  }
+  stage1Answered = true;
+  const task = stage1Data[state.stage1.current];
+  const correctSet = new Set(task.correct);
+  const cards = document.querySelectorAll('#task1-options .option-card');
+  let allCorrect = true;
+
+  cards.forEach((card, i) => {
+    card.onclick = null;
+    if (correctSet.has(i)) {
+      if (stage1Selections.has(i)) {
+        card.classList.add('correct');
+      } else {
+        card.classList.add('missed');
+        allCorrect = false;
+      }
+    } else {
+      if (stage1Selections.has(i)) {
+        card.classList.add('wrong');
+        allCorrect = false;
+      }
+    }
+  });
+
+  const fb = document.getElementById('feedback-1');
+  const fbImg = document.getElementById('feedback-img-1');
+  const fbTitle = document.getElementById('feedback-title-1');
+  const fbText = document.getElementById('feedback-text-1');
+
+  if (allCorrect) {
+    fb.className = 'feedback-area show success';
+    fbImg.src = CORRECT_IMG;
+    fbTitle.textContent = "✨ Отлично! ✨";
+    fbText.textContent = randomPhrase('correct') + " " + task.explanation;
+    state.stage1.score++;
+    state.stage1.correct++;
+    state.totalScore++;
+    state.totalCorrect++;
+    playFeedback(true);
+    speak("Отлично! " + task.explanation);
+  } else {
+    fb.className = 'feedback-area show error';
+    fbImg.src = WRONG_IMG;
+    fbTitle.textContent = "🤔 Почти! Попробуй ещё раз.";
+    fbText.textContent = randomPhrase('wrong') + " " + task.explanation;
+    state.stage1.errors++;
+    state.totalErrors++;
+    state.stage1.errorsList.push({ q: task.title, exp: task.explanation });
+    playFeedback(false);
+    speak("Почти! " + task.explanation);
+  }
+
+  document.getElementById('check-btn-1').style.display = 'none';
+  document.getElementById('next-btn-1').className = 'btn btn-primary';
+  document.getElementById('helper-speech-1').textContent = allCorrect ? randomPhrase('correct') : "Не переживай! Давай двигаться дальше!";
+  updateTopBar();
+}
+
+function nextStage1() {
+  if (!stage1Answered) {
+    showModal("Задание не выполнено", "Сначала выполните задание!", false);
+    return;
+  }
+  state.stage1.current++;
+  if (state.stage1.current >= stage1Data.length) {
+    showStageComplete(1);
+  } else {
+    loadStage1();
+  }
+}
+
+function showModal(title, text, isSuccess) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = `<p style="text-align:center; font-size:18px; margin:20px 0;">${text}</p>`;
+  document.getElementById('modal-controls').innerHTML = `<button class="btn btn-primary" onclick="closeModal()">Понятно</button>`;
+  document.getElementById('modal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+}
+
+function showStageComplete(stageNum) {
+  document.getElementById('stage-complete-title').textContent = `Этап ${stageNum} пройден!`;
+  const stageData = state['stage' + stageNum];
+  const total = stageNum === 1 ? stage1Data.length : stageNum === 2 ? stage2Data.length : stageNum === 3 ? stage3Data.length : stage4Data.length;
+  document.getElementById('stage-complete-text').innerHTML =
+    `Ты ответил правильно на <b>${stageData.correct}</b> из <b>${total}</b> вопросов.<br>Набрано баллов: <b>${stageData.score}</b>`;
+  speak(`Этап ${stageNum} пройден! Ты ответил правильно на ${stageData.correct} из ${total} вопросов.`);
+  showScreen('stage-complete-screen');
+}
+
+function goNextStage() {
+  state.currentStage++;
+  if (state.currentStage === 2) { loadStage2(); showScreen('stage2-screen'); }
+  else if (state.currentStage === 3) { loadStage3(); showScreen('stage3-screen'); document.getElementById('lives-box').style.display = 'flex'; updateLives(); }
+  else if (state.currentStage === 4) { loadStage4(); showScreen('stage4-screen'); document.getElementById('lives-box').style.display = 'none'; }
+  else { showFinal(); }
+  updateTopBar();
+}
+
+let stage2Answered = false;
+
+function loadStage2() {
+  stage2Answered = false;
+  const task = stage2Data[state.stage2.current];
+  document.getElementById('task2-title').textContent = task.title;
+  speak(task.title);
+  const container = document.getElementById('task2-options');
+  container.innerHTML = '';
+  task.options.forEach((opt, i) => {
+    const div = document.createElement('div');
+    div.className = 'option-card';
+    div.textContent = opt;
+    div.onclick = () => checkStage2(i, div);
+    container.appendChild(div);
+  });
+  document.getElementById('feedback-2').classList.remove('show');
+  document.getElementById('next-btn-2').className = 'btn btn-muted';
+  document.getElementById('helper-speech-2').textContent = "Найди лишнее! Один предмет здесь не из мира медицины.";
+  updateTopBar();
+}
+
+function checkStage2(idx, el) {
+  if (stage2Answered) return;
+  const task = stage2Data[state.stage2.current];
+  const cards = document.querySelectorAll('#task2-options .option-card');
+  const fb = document.getElementById('feedback-2');
+  const fbImg = document.getElementById('feedback-img-2');
+  const fbTitle = document.getElementById('feedback-title-2');
+  const fbText = document.getElementById('feedback-text-2');
+
+  if (idx === task.correct) {
+    stage2Answered = true;
+    cards.forEach((c, i) => {
+      if (i === idx) c.classList.add('correct');
+      else c.classList.add('dimmed');
+    });
+    fb.className = 'feedback-area show success';
+    fbImg.src = CORRECT_IMG;
+    fbTitle.textContent = "✨ Отлично! ✨";
+    fbText.textContent = randomPhrase('correct') + " " + task.explanation;
+    state.stage2.score++;
+    state.stage2.correct++;
+    state.totalScore++;
+    state.totalCorrect++;
+    playFeedback(true);
+    speak("Отлично! " + task.explanation);
+    document.getElementById('next-btn-2').className = 'btn btn-primary';
+    document.getElementById('helper-speech-2').textContent = randomPhrase('correct');
+  } else {
+    el.classList.add('wrong');
+    setTimeout(() => el.classList.remove('wrong'), 600);
+    fb.className = 'feedback-area show error';
+    fbImg.src = WRONG_IMG;
+    fbTitle.textContent = "🤔 Почти! Попробуй ещё раз.";
+    fbText.textContent = randomPhrase('wrong') + " Подумай, что не связано с медициной.";
+    state.stage2.errors++;
+    state.totalErrors++;
+    playFeedback(false);
+    speak("Почти! Подумай ещё раз.");
+    document.getElementById('helper-speech-2').textContent = randomPhrase('wrong');
+  }
+  updateTopBar();
+}
+
+function nextStage2() {
+  if (!stage2Answered) {
+    showModal("Задание не выполнено", "Сначала выполните задание!", false);
+    return;
+  }
+  state.stage2.current++;
+  if (state.stage2.current >= stage2Data.length) {
+    showStageComplete(2);
+  } else {
+    loadStage2();
+  }
+}
+
+let stage3Answered = false;
+
+function loadStage3() {
+  stage3Answered = false;
+  const container = document.getElementById('maze-container');
+  container.innerHTML = '';
+  document.getElementById('feedback-3').classList.remove('show');
+
+  const path = document.createElement('div');
+  path.className = 'maze-path';
+
+  const mouseNode = document.createElement('div');
+  mouseNode.className = 'maze-node';
+  mouseNode.innerHTML = `<div class="maze-mouse">🐭</div><div style="font-weight:bold; color:var(--game-primary);">Мышонок Пик</div>`;
+  path.appendChild(mouseNode);
+
+  state.stage3.current = 0;
+  renderMazeNode(path);
+  container.appendChild(path);
+  updateTopBar();
+}
+
+function renderMazeNode(pathContainer) {
+  const idx = state.stage3.current;
+  if (idx >= stage3Data.length) {
+    const finish = document.createElement('div');
+    finish.className = 'maze-node completed';
+    finish.innerHTML = `<div style="font-size: 40px;">🏆</div><div style="font-weight:bold; color:var(--game-success);">Мы нашли врача!</div>`;
+    pathContainer.appendChild(finish);
+    speak("Поздравляю! Мы нашли врача!");
+    setTimeout(() => {
+      showStageComplete(3);
+    }, 1500);
+    return;
+  }
+
+  const task = stage3Data[idx];
+  const connector = document.createElement('div');
+  connector.className = 'maze-connector';
+  pathContainer.appendChild(connector);
+
+  const node = document.createElement('div');
+  node.className = 'maze-node';
+  node.id = 'maze-node-' + idx;
+  node.innerHTML = `
+    <div style="font-size: 14px; color: var(--game-text-soft);">Развилка ${idx + 1} из ${stage3Data.length}</div>
+    <div class="maze-question">${task.question}</div>
+    <div class="maze-choices" id="maze-choices-${idx}"></div>
+  `;
+  pathContainer.appendChild(node);
+  speak(task.question);
+
+  const choicesContainer = node.querySelector(`#maze-choices-${idx}`);
+  task.choices.forEach((choice, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'maze-choice';
+    btn.textContent = choice.text;
+    btn.onclick = () => handleMazeChoice(idx, i, btn, pathContainer);
+    choicesContainer.appendChild(btn);
+  });
+}
+
+function handleMazeChoice(nodeIdx, choiceIdx, btn, pathContainer) {
+  if (state.stage3.current !== nodeIdx) return;
+  const task = stage3Data[nodeIdx];
+  const choice = task.choices[choiceIdx];
+  const choices = document.querySelectorAll(`#maze-choices-${nodeIdx} .maze-choice`);
+  choices.forEach(c => c.onclick = null);
+
+  const fb = document.getElementById('feedback-3');
+  const fbImg = document.getElementById('feedback-img-3');
+  const fbTitle = document.getElementById('feedback-title-3');
+  const fbText = document.getElementById('feedback-text-3');
+
+  if (choice.correct) {
+    btn.classList.add('correct');
+    state.stage3.score++;
+    state.stage3.correct++;
+    state.totalScore++;
+    state.totalCorrect++;
+    fb.className = 'feedback-area show success';
+    fbImg.src = CORRECT_IMG;
+    fbTitle.textContent = "✨ Отлично! ✨";
+    fbText.textContent = randomPhrase('correct') + " " + task.explanation;
+    playFeedback(true);
+    speak("Отлично! " + task.explanation);
+    document.getElementById('maze-node-' + nodeIdx).classList.add('completed');
+    state.stage3.current++;
+    updateTopBar();
+    setTimeout(() => {
+      renderMazeNode(pathContainer);
+    }, 1500);
+  } else {
+    btn.classList.add('wrong');
+    state.stage3.lives--;
+    state.stage3.errors++;
+    state.totalErrors++;
+    state.stage3.errorsList.push({ q: task.question, exp: task.explanation });
+    updateLives();
+    fb.className = 'feedback-area show error';
+    fbImg.src = WRONG_IMG;
+    fbTitle.textContent = "🚫 Тупик! Попробуй ещё раз.";
+    fbText.textContent = randomPhrase('wrong') + " " + task.explanation;
+    playFeedback(false);
+    speak("Тупик! " + task.explanation);
+    document.getElementById('maze-node-' + nodeIdx).classList.add('failed');
+
+    if (state.stage3.lives <= 0) {
+      setTimeout(() => {
+        showModal("Игра окончена", "Жизни закончились. Попробуй ещё раз!", false);
+        showFinal();
+      }, 1500);
+      return;
+    }
+
+    setTimeout(() => {
+      choices.forEach((c, i) => {
+        if (task.choices[i].correct) c.classList.add('correct');
+      });
+    }, 800);
+
+    setTimeout(() => {
+      fb.classList.remove('show');
+      document.getElementById('maze-node-' + nodeIdx).classList.remove('failed');
+      choices.forEach(c => {
+        c.classList.remove('wrong', 'correct');
+        c.onclick = () => handleMazeChoice(nodeIdx, Array.from(choices).indexOf(c), c, pathContainer);
+      });
+    }, 2500);
+  }
+}
+
+function loadStage4() {
+  state.stage4.found = 0;
+  const container = document.getElementById('scene-container');
+  container.innerHTML = `
+    <svg class="scene-svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#caf0f8"/>
+          <stop offset="100%" stop-color="#eaf6fb"/>
+        </linearGradient>
+      </defs>
+      <rect x="0" y="0" width="100" height="70" fill="url(#skyGrad)"/>
+      <rect x="0" y="70" width="100" height="30" fill="#b8d4e3"/>
+      <ellipse cx="15" cy="15" rx="6" ry="3" fill="white" opacity="0.8"/>
+      <ellipse cx="75" cy="10" rx="8" ry="4" fill="white" opacity="0.8"/>
+      <rect x="25" y="25" width="50" height="50" fill="white" stroke="#0077b6" stroke-width="0.5"/>
+      <rect x="25" y="25" width="50" height="8" fill="#0077b6"/>
+      <rect x="30" y="40" width="6" height="8" fill="#90e0ef"/>
+      <rect x="40" y="40" width="6" height="8" fill="#90e0ef"/>
+      <rect x="54" y="40" width="6" height="8" fill="#90e0ef"/>
+      <rect x="64" y="40" width="6" height="8" fill="#90e0ef"/>
+      <rect x="30" y="55" width="6" height="8" fill="#90e0ef"/>
+      <rect x="64" y="55" width="6" height="8" fill="#90e0ef"/>
+      <circle cx="15" cy="65" r="5" fill="#52b788"/>
+      <rect x="14" y="68" width="2" height="5" fill="#6b4423"/>
+      <circle cx="88" cy="65" r="5" fill="#52b788"/>
+      <rect x="87" y="68" width="2" height="5" fill="#6b4423"/>
+      <circle cx="90" cy="15" r="4" fill="#ffd166"/>
+    </svg>
+  `;
+
+  stage4Data.forEach((item, i) => {
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.setAttribute("class", "hotspot");
+    g.setAttribute("data-id", item.id);
+    g.onclick = () => openSceneQuestion(i);
+
+    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.setAttribute("cx", item.x);
+    circle.setAttribute("cy", item.y);
+    circle.setAttribute("r", 2.5);
+    circle.setAttribute("class", "pulse-dot");
+    circle.setAttribute("id", "dot-" + item.id);
+    g.appendChild(circle);
+
+    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    text.setAttribute("x", item.x);
+    text.setAttribute("y", item.y + 0.8);
+    text.setAttribute("text-anchor", "middle");
+    text.setAttribute("font-size", "2.5");
+    text.setAttribute("fill", "white");
+    text.setAttribute("font-weight", "bold");
+    text.textContent = "?";
+    g.appendChild(text);
+
+    container.querySelector('svg').appendChild(g);
+  });
+
+  document.getElementById('scene-counter').textContent = "Найдено: 0 из 7 🔍";
+  document.getElementById('finish-stage4-btn').className = 'btn btn-muted';
+  document.getElementById('helper-speech-4').textContent = "Найди все 7 пульсирующих точек и ответь на вопросы!";
+  updateTopBar();
+}
+
+function openSceneQuestion(idx) {
+  const item = stage4Data[idx];
+  const dot = document.getElementById('dot-' + item.id);
+  const modal = document.getElementById('modal');
+  document.getElementById('modal-title').textContent = "🔍 Вопрос о предмете";
+  speak(item.question);
+
+  let html = `<p style="text-align:center; margin-bottom:15px; font-size:17px;">${item.question}</p><div class="options-grid">`;
+  item.options.forEach((opt, i) => {
+    html += `<div class="option-card" onclick="answerScene(${idx}, ${i}, this)" style="min-height:50px;">${opt}</div>`;
+  });
+  html += `</div>`;
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal-controls').innerHTML = '';
+  modal.classList.add('show');
+}
+
+function answerScene(idx, choiceIdx, el) {
+  const item = stage4Data[idx];
+  const cards = el.parentElement.querySelectorAll('.option-card');
+  cards.forEach(c => c.onclick = null);
+
+  if (choiceIdx === item.correct) {
+    el.classList.add('correct');
+    state.stage4.score++;
+    state.stage4.correct++;
+    state.totalScore++;
+    state.totalCorrect++;
+    playFeedback(true);
+    speak("Отлично! " + item.explanation);
+
+    const dot = document.getElementById('dot-' + item.id);
+    dot.setAttribute('class', 'found-dot');
+    dot.setAttribute('fill', 'var(--game-success)');
+
+    setTimeout(() => {
+      document.getElementById('modal').classList.remove('show');
+      state.stage4.found++;
+      document.getElementById('scene-counter').textContent = `Найдено: ${state.stage4.found} из 7 🔍`;
+      updateTopBar();
+      if (state.stage4.found === stage4Data.length) {
+        document.getElementById('finish-stage4-btn').className = 'btn btn-success';
+      }
+    }, 1200);
+  } else {
+    el.classList.add('wrong');
+    state.stage4.errors++;
+    state.totalErrors++;
+    state.stage4.errorsList.push({ q: item.question, exp: item.explanation });
+    playFeedback(false);
+    speak("Почти! " + item.explanation);
+    setTimeout(() => {
+      cards.forEach((c, i) => {
+        if (i === item.correct) c.classList.add('missed');
+      });
+      setTimeout(() => {
+        document.getElementById('modal').classList.remove('show');
+      }, 1500);
+    }, 800);
+  }
+}
+
+function finishStage4() {
+  if (state.stage4.found < stage4Data.length) {
+    showModal("Задание не выполнено", "Сначала найди все предметы!", false);
+    return;
+  }
+  showStageComplete(4);
+}
+
+function showFinal() {
+  document.getElementById('top-bar').style.display = 'none';
+  document.getElementById('final-score').textContent = state.totalScore;
+  document.getElementById('final-correct').textContent = state.totalCorrect;
+  document.getElementById('final-errors').textContent = state.totalErrors;
+
+  const maxScore = stage1Data.length + stage2Data.length + stage3Data.length + stage4Data.length;
+  const pct = state.totalScore / maxScore;
+  let stars = 1;
+  if (pct >= 1) stars = 3;
+  else if (pct >= 0.75) stars = 3;
+  else if (pct >= 0.5) stars = 2;
+
+  const starEls = document.querySelectorAll('#final-stars .star');
+  starEls.forEach((s, i) => {
+    setTimeout(() => {
+      if (i < stars) s.classList.add('earned');
+    }, i * 400);
+  });
+
+  let msg = "Ты настоящий помощник врача!";
+  if (pct < 0.5) msg = "Не переживай! В следующий раз получится лучше!";
+  else if (pct < 0.75) msg = "Хороший результат! Ты много знаешь о медицине!";
+  document.getElementById('final-message').textContent = msg;
+  speak("Миссия выполнена! " + msg);
+
+  showScreen('final-screen');
+}
+
+function showErrors() {
+  const list = document.getElementById('errors-list');
+  const allErrors = [
+    ...state.stage1.errorsList.map(e => ({ stage: 1, ...e })),
+    ...state.stage2.errorsList.map(e => ({ stage: 2, ...e })),
+    ...state.stage3.errorsList.map(e => ({ stage: 3, ...e })),
+    ...state.stage4.errorsList.map(e => ({ stage: 4, ...e }))
+  ];
+
+  if (allErrors.length === 0) {
+    list.innerHTML = '<p style="text-align:center; color:var(--game-success); font-size:18px;">🎉 Ура! Ошибок нет! Ты молодец!</p>';
+  } else {
+    list.innerHTML = '<h3 style="color:var(--game-primary); margin-bottom:10px;">📋 Разбор ошибок:</h3>' +
+      allErrors.map(e => `<div class="error-item"><b>Этап ${e.stage}:</b> ${e.q}<br><i>${e.exp}</i></div>`).join('');
+  }
+  list.classList.toggle('show');
+}
+
+function restartGame() {
+  document.querySelectorAll('#final-stars .star').forEach(s => s.classList.remove('earned'));
+  document.getElementById('errors-list').classList.remove('show');
+  showScreen('start-screen');
+  document.getElementById('top-bar').style.display = 'none';
+}
+</script>
+
+</body>
+</html>
